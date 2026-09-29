@@ -2,3 +2,6 @@
 
 #### UI
 - [Figma- UI](https://www.figma.com/design/KLNAGhj6wbqCTfy4dkRGoE/Grocery_App?node-id=0-1&p=f)
+
+#### API Documentation
+- [Postman Documentation](https://documenter.getpostman.com/view/50716080/2sBYB4M7Td)
