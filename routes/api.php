@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\API\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,4 +26,6 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->post('/change-password', [AuthController::class, 'changePassword']);
 
 
+//HOME
 Route::apiResource('categories', CategoryController::class);
+Route::apiResource('products', ProductController::class);
