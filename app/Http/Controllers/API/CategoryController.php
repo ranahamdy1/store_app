@@ -12,25 +12,29 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $categories = Category::where('is_active', true)
-            ->orderBy('sort_order')
-            ->get();
+        $categories = Category::latest()->get();
 
-        return CategoryResource::collection($categories);
+        return api_response(
+            'success',
+            'Categories retrieved successfully',
+            CategoryResource::collection($categories)
+        );
     }
 
     public function show(Category $category)
     {
-        return new CategoryResource($category);
+        return api_response(
+            'success',
+            'Category retrieved successfully',
+            new CategoryResource($category)
+        );
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'is_active' => ['nullable', 'boolean'],
-            'sort_order' => ['nullable', 'integer'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         if ($request->hasFile('image')) {
@@ -40,19 +44,19 @@ class CategoryController extends Controller
 
         $category = Category::create($data);
 
-        return response()->json([
-            'message' => 'Category created successfully',
-            'data' => new CategoryResource($category),
-        ], 201);
+        return api_response(
+            'success',
+            'Category created successfully',
+            new CategoryResource($category),
+            201
+        );
     }
 
     public function update(Request $request, Category $category)
     {
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'is_active' => ['nullable', 'boolean'],
-            'sort_order' => ['nullable', 'integer'],
+            'image' => ['sometimes', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         if ($request->hasFile('image')) {
@@ -67,10 +71,11 @@ class CategoryController extends Controller
 
         $category->update($data);
 
-        return response()->json([
-            'message' => 'Category updated successfully',
-            'data' => new CategoryResource($category),
-        ]);
+        return api_response(
+            'success',
+            'Category updated successfully',
+            new CategoryResource($category)
+        );
     }
 
     public function destroy(Category $category)
@@ -81,8 +86,9 @@ class CategoryController extends Controller
 
         $category->delete();
 
-        return response()->json([
-            'message' => 'Category deleted successfully',
-        ]);
+        return api_response(
+            'success',
+            'Category deleted successfully'
+        );
     }
 }

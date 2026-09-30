@@ -13,10 +13,11 @@ class ProductController extends Controller
     {
         $products = Product::latest()->get();
 
-        return response()->json([
-            'status' => true,
-            'data' => $products,
-        ]);
+        return api_response(
+            'success',
+            'Products retrieved successfully',
+            $products
+        );
     }
 
     public function store(Request $request)
@@ -28,7 +29,8 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
         ]);
 
-        $imagePath = $request->file('image')->store('products', 'public');
+        $imagePath = $request->file('image')
+            ->store('products', 'public');
 
         $product = Product::create([
             'name' => $request->name,
@@ -37,19 +39,21 @@ class ProductController extends Controller
             'price' => $request->price,
         ]);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Product created successfully',
-            'data' => $product,
-        ], 201);
+        return api_response(
+            'success',
+            'Product created successfully',
+            $product,
+            201
+        );
     }
 
     public function show(Product $product)
     {
-        return response()->json([
-            'status' => true,
-            'data' => $product,
-        ]);
+        return api_response(
+            'success',
+            'Product retrieved successfully',
+            $product
+        );
     }
 
     public function update(Request $request, Product $product)
@@ -85,11 +89,11 @@ class ProductController extends Controller
 
         $product->save();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Product updated successfully',
-            'data' => $product,
-        ]);
+        return api_response(
+            'success',
+            'Product updated successfully',
+            $product
+        );
     }
 
     public function destroy(Product $product)
@@ -100,9 +104,9 @@ class ProductController extends Controller
 
         $product->delete();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Product deleted successfully',
-        ]);
+        return api_response(
+            'success',
+            'Product deleted successfully'
+        );
     }
 }
