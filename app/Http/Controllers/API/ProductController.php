@@ -3,106 +3,74 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProductRequest;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Services\ProductService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProductController extends Controller
 {
+    public function __construct(
+        protected ProductService $productService
+    ) {}
+
     public function index()
     {
-        $products = Product::latest()->get();
+        $products = $this->productService->getAll();
 
         return api_response(
             'success',
             'Products retrieved successfully',
-            $products
-        );
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'kilo' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-        ]);
-
-        $imagePath = $request->file('image')
-            ->store('products', 'public');
-
-        $product = Product::create([
-            'name' => $request->name,
-            'image' => $imagePath,
-            'kilo' => $request->kilo,
-            'price' => $request->price,
-        ]);
-
-        return api_response(
-            'success',
-            'Product created successfully',
-            $product,
-            201
+            ProductResource::collection($products)
         );
     }
 
     public function show(Product $product)
     {
+        $product = $this->productService->getById($product);
+
         return api_response(
             'success',
             'Product retrieved successfully',
-            $product
+            new ProductResource($product)
         );
     }
 
-    public function update(Request $request, Product $product)
+    public function store(ProductRequest $request)
     {
-        $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'image' => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'kilo' => 'sometimes|numeric|min:0',
-            'price' => 'sometimes|numeric|min:0',
-        ]);
+        $product = $this->productService->create(
+            $request->validated()
+        );
 
-        if ($request->hasFile('image')) {
+        return api_response(
+            'success',
+            'Product created successfully',
+            new ProductResource($product),
+            201
+        );
+    }
 
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
-            }
-
-            $product->image = $request->file('image')
-                ->store('products', 'public');
-        }
-
-        if ($request->has('name')) {
-            $product->name = $request->name;
-        }
-
-        if ($request->has('kilo')) {
-            $product->kilo = $request->kilo;
-        }
-
-        if ($request->has('price')) {
-            $product->price = $request->price;
-        }
-
-        $product->save();
+    public function update(
+        ProductRequest $request,
+        Product $product
+    ) {
+        $product = $this->productService->update(
+            $product,
+            $request->validated()
+        );
 
         return api_response(
             'success',
             'Product updated successfully',
-            $product
+            new ProductResource($product)
         );
     }
 
     public function destroy(Product $product)
     {
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
-        }
-
-        $product->delete();
+        $this->productService->delete($product);
 
         return api_response(
             'success',

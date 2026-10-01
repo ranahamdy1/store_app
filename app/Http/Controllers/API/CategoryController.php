@@ -1,18 +1,22 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use App\Services\CategoryService;
 
 class CategoryController extends Controller
 {
+    public function __construct(
+        protected CategoryService $categoryService
+    ) {}
+
     public function index()
     {
-        $categories = Category::latest()->get();
+        $categories = $this->categoryService->getAll();
 
         return api_response(
             'success',
@@ -23,6 +27,8 @@ class CategoryController extends Controller
 
     public function show(Category $category)
     {
+        $category = $this->categoryService->getById($category);
+
         return api_response(
             'success',
             'Category retrieved successfully',
@@ -30,19 +36,11 @@ class CategoryController extends Controller
         );
     }
 
-    public function store(Request $request)
+    public function store(CategoryRequest $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
-
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')
-                ->store('categories', 'public');
-        }
-
-        $category = Category::create($data);
+        $category = $this->categoryService->create(
+            $request->validated()
+        );
 
         return api_response(
             'success',
@@ -52,24 +50,14 @@ class CategoryController extends Controller
         );
     }
 
-    public function update(Request $request, Category $category)
-    {
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'image' => ['sometimes', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
-
-        if ($request->hasFile('image')) {
-
-            if ($category->image) {
-                Storage::disk('public')->delete($category->image);
-            }
-
-            $data['image'] = $request->file('image')
-                ->store('categories', 'public');
-        }
-
-        $category->update($data);
+    public function update(
+        CategoryRequest $request,
+        Category $category
+    ) {
+        $category = $this->categoryService->update(
+            $category,
+            $request->validated()
+        );
 
         return api_response(
             'success',
@@ -80,11 +68,7 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
-        if ($category->image) {
-            Storage::disk('public')->delete($category->image);
-        }
-
-        $category->delete();
+        $this->categoryService->delete($category);
 
         return api_response(
             'success',

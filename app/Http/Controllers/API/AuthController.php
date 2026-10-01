@@ -3,43 +3,46 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\ChangePasswordRequest;
+use App\Services\AuthService;
 use Illuminate\Http\Request;
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function __construct(
+        protected AuthService $authService
+    ) {}
+
+    public function register(RegisterRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users',
-            'password' => 'required|string|min:8',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        $token = $user->createToken('API Token')->plainTextToken;
+        $data = $this->authService->register(
+            $request->validated()
+        );
 
         return api_response(
             'success',
             'User registered successfully',
-            [
-                'user' => $user,
-                'token' => $token,
-            ],
+            $data,
             201
         );
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        try {
+            $data = $this->authService->login(
+                $request->validated()
+            );
+
+            return api_response(
+                'success',
+                'Login successful',
+                $data
+            );
+        } catch (ValidationException $e) {
             return api_response(
                 'fail',
                 'Invalid credentials',
@@ -47,24 +50,13 @@ class AuthController extends Controller
                 401
             );
         }
-
-        $user = Auth::user();
-
-        $token = $user->createToken('API Token')->plainTextToken;
-
-        return api_response(
-            'success',
-            'Login successful',
-            [
-                'user' => $user,
-                'token' => $token,
-            ]
-        );
     }
 
     public function logout(Request $request)
     {
-        $request->user()->tokens()->delete();
+        $this->authService->logout(
+            $request->user()
+        );
 
         return api_response(
             'success',
@@ -72,16 +64,21 @@ class AuthController extends Controller
         );
     }
 
-    public function changePassword(Request $request)
-    {
-        $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|min:8|confirmed',
-        ]);
+    public function changePassword(
+        ChangePasswordRequest $request
+    ) {
+        try {
+            $this->authService->changePassword(
+                $request->user(),
+                $request->current_password,
+                $request->new_password
+            );
 
-        $user = $request->user();
-
-        if (!Hash::check($request->current_password, $user->password)) {
+            return api_response(
+                'success',
+                'Password updated successfully'
+            );
+        } catch (ValidationException $e) {
             return api_response(
                 'fail',
                 'Current password is incorrect',
@@ -89,14 +86,5 @@ class AuthController extends Controller
                 400
             );
         }
-
-        $user->update([
-            'password' => Hash::make($request->new_password),
-        ]);
-
-        return api_response(
-            'success',
-            'Password updated successfully'
-        );
     }
 }
